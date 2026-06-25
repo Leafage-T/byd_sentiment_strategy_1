@@ -1,0 +1,8 @@
+akshare==1.16.90
+pandas
+numpy
+requests
+beautifulsoup4
+snownlp
+streamlit
+matplotlib

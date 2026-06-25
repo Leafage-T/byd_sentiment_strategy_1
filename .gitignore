@@ -1,0 +1,20 @@
+# PyCharm本地工程配置文件夹
+.idea/
+
+# Python编译缓存文件
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 系统生成隐藏文件
+.DS_Store
+Thumbs.db
+
+# 临时日志文件
+*.log
+temp/
+tmp/
+
+# 可选：如果不想上传数据库文件就放开下面一行
+# *.db
