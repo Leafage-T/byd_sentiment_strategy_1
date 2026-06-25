@@ -7,38 +7,26 @@ streamlit_report.py
     第 1 页：封面（项目标题、姓名、课程）
     第 2 页：选题说明（匹配课件 A1、单个股研究、创新点舆情过滤、文献综述）
     第 3 页：数据说明（三类数据源、清洗与入库逻辑）
-    第 4 页：量化策略规则（指标、开平仓条件、回测约束）
+    第 4 页：量化策略规则（指标、开平仓条件）
     第 5 页：回测结果（训练/样本外指标表格、净值对比图、量化指标解读）
     第 6 页：可视化面板图表分模块解读
-    第 7 页：总结（策略效果、优缺点、改进方向）
+    第 7 页：总结（策略优缺点、改进方向）
 运行：streamlit run streamlit_report.py
 作者：王淑璐 · 赵梦婷    课程：财经数据分析
 ================================================================
 """
+# 【唯一有效全局字体配置，删除所有旧Noto/DejaVu加载代码】
+import matplotlib
+# 优先文泉驿微米黑，兜底正黑，云端apt自动安装
+matplotlib.rcParams['font.sans-serif'] = ["WenQuanYi Micro Hei", "WenQuanYi Zen Hei"]
+matplotlib.rcParams['axes.unicode_minus'] = False
+matplotlib.rcParams['font.size'] = 10
 
 from pathlib import Path
-
 import numpy as np
 import pandas as pd
 import streamlit as st
-
-import matplotlib
-import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
-
-# ----------------------- 字体全局统一缩小配置 -----------------------
-plt.rcParams['font.size'] = 10
-for fp in [
-    '/usr/share/fonts/truetype/chinese/NotoSansSC-Regular.ttf',
-    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-]:
-    if Path(fp).exists():
-        try:
-            fm.fontManager.addfont(fp)
-        except Exception:
-            pass
-plt.rcParams['font.sans-serif'] = ['Noto Sans SC', 'DejaVu Sans', 'SimHei']
-plt.rcParams['axes.unicode_minus'] = False
 
 # ----------------------- 路径 -----------------------
 HERE = Path(__file__).resolve().parent
@@ -80,7 +68,7 @@ PAGES = [
 
 
 # ============================================================
-# 第 1 页：封面（标签居中修复）
+# 第 1 页：封面
 # ============================================================
 def page_cover():
     st.markdown(
@@ -139,7 +127,6 @@ def page_cover():
         unsafe_allow_html=True,
     )
 
-    # 标签容器强制居中
     st.markdown('<div class="cover-tag-wrap">', unsafe_allow_html=True)
     st.markdown(
         '<span class="cover-tag">#量化择时</span>'
@@ -162,7 +149,7 @@ def page_cover():
 
 
 # ============================================================
-# 第 2 页：选题说明（含修改后文献综述，删除茅台示例）
+# 第 2 页：选题说明
 # ============================================================
 def page_topic():
     st.header('🎯 选题说明')
@@ -199,7 +186,7 @@ def page_topic():
             'Streamlit 交互面板',
         ],
     })
-    st.dataframe(match_table, hide_index=True, use_container_width=True)
+    st.dataframe(match_table, hide_index=True, width="stretch")
 
     st.subheader('3. 为什么选单只股研究')
     col1, col2 = st.columns(2)
@@ -227,7 +214,7 @@ def page_topic():
         '- **Tetlock (2007)**：实证证明财经新闻文本情感对个股未来短期股价具备显著预测能力，文本情绪可作为辅助定价因子。\n'
         '- **Bollen et al. (2011)**：利用社交平台文本情感时序数据，有效预测美股道琼斯指数短期涨跌方向，验证舆情与市场走势的联动关系。\n'
         '\n'
-        '现有研究多聚焦海外市场指数，本项目将舆情情感因子落地至国内新能源个股，结合传统技术指标构建复合择时策略，并增设2026年样本外数据完成稳健性检验。'
+        '现有研究多聚焦海外市场指数，本项目将舆情情感因子落地至国内新能源个股，结合传统技术指标构建复合择时，并增设2026样本外稳健检验。'
     )
 
 
@@ -247,14 +234,14 @@ def page_data():
             'akshare 财经新闻 + 网页抓取',
         ],
         '字段': [
-            'open / high / low / close / volume',
+            'open / high / low / volume',
             'pe_ttm / pb',
             'date / title / source',
         ],
         '时间跨度': ['2020-01 ~ 2026-06', '2020-01 ~ 2026-06', '2020-01 ~ 2026-06'],
         '行数(示例)': ['~1,500', '~1,500', '~1,500'],
     })
-    st.dataframe(schema, hide_index=True, use_container_width=True)
+    st.dataframe(schema, hide_index=True, width="stretch")
 
     st.subheader('2. 清洗与入库逻辑')
     flow = pd.DataFrame({
@@ -278,37 +265,35 @@ def page_data():
         '说明': [
             '统一为 YYYY-MM-DD',
             '保证时序连续',
-            '消除除权除息跳空',
+            '消除除权跳空',
             '输出 [0, 1] 情感分',
             '一日一条情感均值',
             '三表：daily_quotes / valuation / sentiment',
         ],
     })
-    st.dataframe(flow, hide_index=True, use_container_width=True)
+    st.dataframe(flow, hide_index=True, width="stretch")
 
     st.subheader('3. 数据库表结构')
     st.code(
         'byd_stock.db\n'
         '├── daily_quotes    (date, open, high, low, close, volume)\n'
-        '├── valuation       (date, pe, pb)\n'
+        '├── valuation       (date, pe_ttm, pb)\n'
         '└── sentiment       (date, sentiment, news_count)\n',
         language='text',
     )
 
     st.subheader('4. 数据坑点与应对')
     st.warning(
-        '⚠️ **SnowNLP 局限**：默认对商品评论训练，对财经新闻准确率约 70%。'
-        '复杂语境（如「未预期超出悲观预期」）容易误判。'
-        '结论：情感因子只作为辅助过滤，不能主导信号。'
+        '⚠️ **SnowNLP 局限**：默认商品评论训练，财经文本准确率约70%。复杂语境易误判。'
+        '情感因子仅作辅助过滤，不做主信号。'
     )
     st.error(
-        '⚠️ **网络异常**：akshare 接口偶发超时。'
-        '应对：try/except 捕获，缺失舆情填充中性值 0.5，保证程序不中断。'
+        '⚠️ **akshare 网络超时**：爬虫接口偶发中断，缺失舆情填充中性值0.5，程序不崩溃。'
     )
 
 
 # ============================================================
-# 第 4 页：量化策略规则（整体缩小metric字体）
+# 第 4 页：量化策略规则
 # ============================================================
 def page_strategy():
     st.markdown("""
@@ -327,18 +312,18 @@ def page_strategy():
         '公式': [
             'close.rolling(5).mean()',
             'close.rolling(20).mean()',
-            'EMA12 - EMA26 / DEA=EMA9(DIF) / HIST=DIF-DEA',
-            '100 - 100/(1+RS), RS=avg_gain/avg_loss, 14日',
+            'DIF=EMA12-EMA26, DEA=EMA9(DIF), HIST=DIF-DEA',
+            'RS=平均涨跌幅比值，14周期归一至0-100',
         ],
         '用途': ['短期均线', '中期均线', '趋势动能', '超买超卖'],
     })
-    st.dataframe(ind_table, hide_index=True, use_container_width=True)
+    st.dataframe(ind_table, hide_index=True, width="stretch")
 
     st.subheader('2. 开仓条件（三者同时满足）')
     c1, c2, c3 = st.columns(3)
     c1.metric('条件 ①', 'MA5 上穿 MA20', '金叉')
     c2.metric('条件 ②', 'MACD 柱 > 0', '动能转正')
-    c3.metric('条件 ③', '情感分 > 0.55', '舆情偏乐观')
+    c3.metric('条件 ③', '情感分 > 0.55', '舆情乐观')
 
     st.subheader('3. 平仓条件（满足其一即可）')
     p1, p2 = st.columns(2)
@@ -349,33 +334,33 @@ def page_strategy():
     constraint = pd.DataFrame({
         '约束项': [
             '信号成交时点',
-            '手续费',
-            '基准',
-            '训练集',
-            '样本外',
+            '单边手续费',
+            '基准策略',
+            '训练区间',
+            '样本外区间',
             '无风险利率',
             '年化交易日',
         ],
         '取值': [
-            'T 日信号 → T+1 日开盘成交',
-            '单边 0.05%（双边 0.10%）',
-            '买入持有（Buy & Hold）',
+            'T日信号，T+1开盘成交',
+            '0.05%',
+            '买入持有',
             '2020-01 ~ 2025-12',
             '2026-01 ~ 2026-06',
             '0%',
-            '252 日',
+            '252天',
         ],
-        '理由': [
-            '防未来函数（shift(1)）',
-            'A 股保守估计',
-            '最朴素对照',
-            '6 年训练',
-            '样本外稳健性',
-            '简化处理',
-            '国际惯例',
+        '说明': [
+            '规避未来函数',
+            '双边合计0.1%',
+            '朴素对标基准',
+            '六年训练数据',
+            '外推稳健检验',
+            '简化计算',
+            '市场通用标准',
         ],
     })
-    st.dataframe(constraint, hide_index=True, use_container_width=True)
+    st.dataframe(constraint, hide_index=True, width="stretch")
 
     st.subheader('5. 信号生成伪代码')
     st.code(
@@ -388,14 +373,14 @@ def page_strategy():
         'open_sig  = golden_cross & macd_pos & sent_ok\n'
         'close_sig = death_cross | rsi_over\n'
         '\n'
-        '# 信号延后 1 日成交\n'
+        '# 信号延迟一日交易，消除未来函数\n'
         'position = position.shift(1)\n',
         language='python',
     )
 
 
 # ============================================================
-# 第 5 页：回测结果（新增关键数字文字解读，无调试提示）
+# 第 5 页：回测结果（图表全部添加fontfamily修复中文）
 # ============================================================
 def page_results():
     st.header('📈 回测结果')
@@ -407,53 +392,50 @@ def page_results():
     if metrics is not None:
         train = metrics[metrics['分组'].str.contains('训练集')].copy()
         sample = metrics[metrics['分组'].str.contains('样本外')].copy()
-        full = metrics[metrics['分组'].str.contains('全样本')].copy()
+        full = metrics[metrics['分组']].str.contains('全样本').copy()
 
         c1, c2 = st.columns(2)
         with c1:
             st.markdown('**训练集（2020-2025）**')
-            st.dataframe(train, hide_index=True, use_container_width=True)
+            st.dataframe(train, hide_index=True, width="stretch")
         with c2:
             st.markdown('**样本外（2026）**')
-            st.dataframe(sample, hide_index=True, use_container_width=True)
+            st.dataframe(sample, hide_index=True, width="stretch")
         st.markdown('**全样本（2020-2026）**')
-        st.dataframe(full, hide_index=True, use_container_width=True)
+        st.dataframe(metrics[full], hide_index=True, width="stretch")
     else:
-        st.warning('未找到 metrics_summary.csv，请先运行 strategy_backtest.py')
+        st.warning('未读取到回测指标文件，请先运行 strategy_backtest.py')
 
     st.subheader('2. 策略净值 vs 基准净值')
     if df is not None and len(df) > 0:
         fig, ax = plt.subplots(figsize=(12, 5), constrained_layout=True)
-        ax.plot(df['date'], df['strategy_nav'], label='策略净值',
-                color='#C0392B', linewidth=1.8)
-        ax.plot(df['date'], df['benchmark_nav'], label='基准(买入持有)',
-                color='#2E86C1', linewidth=1.5, linestyle='--')
-        ax.axvline(pd.Timestamp('2026-01-01'), color='gray',
-                   linestyle=':', alpha=0.7, label='样本外起点')
-        ax.set_xlabel('日期')
-        ax.set_ylabel('净值（归一化）')
-        ax.set_title('策略净值 vs 基准净值')
-        ax.legend(loc='upper left')
+        ax.plot(df['date'], df['strategy_nav'], label='策略净值', color='#C0392B', linewidth=1.8)
+        ax.plot(df['date'], df['benchmark_nav'], label='基准(买入持有)', color='#2E86C1', linewidth=1.5, linestyle='--')
+        ax.axvline(pd.Timestamp('2026-01-01'), color='gray', linestyle=':', alpha=0.7, label='样本外起点')
+
+        # 全部文字强制指定中文字体
+        ax.set_xlabel('日期', fontfamily="WenQuanYi Micro Hei")
+        ax.set_ylabel('净值（归一化）', fontfamily="WenQuanYi Micro Hei")
+        ax.set_title('策略净值 vs 基准净值', fontfamily="WenQuanYi Micro Hei")
+        ax.legend(loc='upper left', prop={"family": "WenQuanYi Micro Hei"})
         ax.grid(True, alpha=0.3)
         st.pyplot(fig)
     else:
-        st.info('暂无回测数据，请先运行 strategy_backtest.py')
+        st.info('暂无回测时序数据，请执行回测脚本生成')
 
-    # 新增纯文字关键数字解读，无多余调试弹窗
     st.subheader('3. 关键数字解读')
     st.markdown('''
-    全样本周期内，本复合择时策略长期收益表现显著优于单纯买入持有基准。策略通过舆情情感过滤减少无效开仓信号，有效降低持仓阶段最大回撤，提升风险调整收益夏普比率；
-    分开两段样本观察：2020-2025训练集策略超额收益稳定，2026年样本外区间仍保持正向收益，未出现严重失效，证明技术+舆情双因子框架具备一定市场稳健性。
+    全样本周期内，复合择时策略收益显著优于单纯买入持有基准。舆情过滤减少无效开仓，降低最大回撤、提升夏普比率；
+    2020-2025训练集超额稳定，2026样本外仍保持正向收益，模型具备基础稳健性。
     ''')
 
 
 # ============================================================
-# 第 6 页：可视化面板（已删除全部调试蓝色提示）
+# 第 6 页：可视化面板（全部图表字体指定）
 # ============================================================
 def page_visualization():
     st.header('🎨 可视化面板演示')
     st.markdown('---')
-
     df, _ = load_data()
 
     st.subheader('1. 图表分模块解读')
@@ -462,196 +444,182 @@ def page_visualization():
             '① 净值曲线', '② 技术指标', '③ PE/PB 估值', '④ 舆情情感'
         ])
 
+        # Tab1 净值图
         with tab1:
             fig, ax = plt.subplots(figsize=(11, 4), constrained_layout=True)
-            ax.plot(df['date'], df['strategy_nav'], label='策略',
-                    color='#C0392B', linewidth=1.6)
-            ax.plot(df['date'], df['benchmark_nav'], label='基准',
-                    color='#2E86C1', linewidth=1.4, linestyle='--')
-            ax.set_title('策略净值 vs 基准净值')
-            ax.legend(loc='upper left')
+            ax.plot(df['date'], df['strategy_nav'], label='策略', color='#C0392B', linewidth=1.6)
+            ax.plot(df['date'], df['benchmark_nav'], label='基准', color='#2E86C1', linewidth=1.4, linestyle='--')
+            ax.set_title('策略净值 vs 基准净值', fontfamily="WenQuanYi Micro Hei")
+            ax.legend(loc='upper left', prop={"family": "WenQuanYi Micro Hei"})
             ax.grid(True, alpha=0.3)
             st.pyplot(fig)
-            st.caption('解读：策略净值在牛市同步上涨，熊市回撤幅度远小于单纯持有，实现截断亏损、放大盈利的择时目标。')
+            st.caption('解读：牛市同步上涨，熊市回撤更小，实现截断亏损放大盈利')
 
+        # Tab2 多指标图
         with tab2:
-            fig, axes = plt.subplots(3, 1, figsize=(11, 8), constrained_layout=True,
-                                     sharex=True)
-            axes[0].plot(df['date'], df['close'], label='收盘价',
-                         color='#2C3E50', linewidth=1)
-            axes[0].plot(df['date'], df['ma5'], label='MA5',
-                         color='#E74C3C', linewidth=1)
-            axes[0].plot(df['date'], df['ma20'], label='MA20',
-                         color='#3498DB', linewidth=1)
-            axes[0].set_ylabel('价格 / 均线')
-            axes[0].legend(loc='upper left', fontsize=8, ncol=3)
+            fig, axes = plt.subplots(3, 1, figsize=(11, 8), constrained_layout=True, sharex=True)
+            # 均线子图
+            axes[0].plot(df['date'], df['close'], label='收盘价', color='#2C3E50', linewidth=1)
+            axes[0].plot(df['date'], df['ma5'], label='MA5', color='#E74C3C', linewidth=1)
+            axes[0].plot(df['date'], df['ma20'], label='MA20', color='#3498DB', linewidth=1)
+            axes[0].set_ylabel('价格 / 均线', fontfamily="WenQuanYi Micro Hei")
+            axes[0].legend(loc='upper left', prop={"family": "WenQuanYi Micro Hei"}, fontsize=8)
             axes[0].grid(True, alpha=0.3)
 
-            axes[1].plot(df['date'], df['macd_dif'], label='DIF',
-                         color='#1ABC9C', linewidth=1)
-            axes[1].plot(df['date'], df['macd_dea'], label='DEA',
-                         color='#F39C12', linewidth=1)
+            # MACD子图
+            axes[1].plot(df['date'], df['macd_dif'], label='DIF', color='#1ABC9C', linewidth=1)
+            axes[1].plot(df['date'], df['macd_dea'], label='DEA', color='#F39C12', linewidth=1)
             colors = ['#E74C3C' if v >= 0 else '#3498DB' for v in df['macd_hist']]
-            axes[1].bar(df['date'], df['macd_hist'], color=colors,
-                        width=1, alpha=0.6, label='HIST')
-            axes[1].set_ylabel('MACD')
-            axes[1].legend(loc='upper left', fontsize=8, ncol=3)
+            axes[1].bar(df['date'], df['macd_hist'], color=colors, width=1, alpha=0.6, label='HIST')
+            axes[1].set_ylabel('MACD', fontfamily="WenQuanYi Micro Hei")
+            axes[1].legend(loc='upper left', prop={"family": "WenQuanYi Micro Hei"}, fontsize=8)
             axes[1].grid(True, alpha=0.3)
 
+            # RSI子图
             axes[2].plot(df['date'], df['rsi14'], color='#8E44AD', linewidth=1)
             axes[2].axhline(75, color='red', linestyle='--', alpha=0.5, label='超买 75')
             axes[2].axhline(25, color='green', linestyle='--', alpha=0.5, label='超卖 25')
-            axes[2].set_ylabel('RSI14')
-            axes[2].set_xlabel('日期')
-            axes[2].legend(loc='upper left', fontsize=8)
+            axes[2].set_ylabel('RSI14', fontfamily="WenQuanYi Micro Hei")
+            axes[2].set_xlabel('日期', fontfamily="WenQuanYi Micro Hei")
+            axes[2].legend(loc='upper left', prop={"family": "WenQuanYi Micro Hei"}, fontsize=8)
             axes[2].grid(True, alpha=0.3)
-            axes[2].set_title('股价均线 / MACD / RSI 走势')
+            axes[2].set_title('股价均线 / MACD / RSI 走势', fontfamily="WenQuanYi Micro Hei")
             st.pyplot(fig)
-            st.caption('解读：MA5上穿MA20、MACD柱翻红、RSI未进入超买区间，构成安全开仓信号；均线死叉或RSI突破75触发平仓。')
+            st.caption('解读：MA5金叉、MACD翻红、RSI未超买构成开仓信号；死叉/RSI>75平仓')
 
+        # Tab3 估值图
         with tab3:
             fig, ax = plt.subplots(figsize=(11, 4), constrained_layout=True)
-            ax.plot(df['date'], df['pe'], label='PE(TTM)',
-                    color='#16A085', linewidth=1.2)
+            ax.plot(df['date'], df['pe'], label='PE(TTM)', color='#16A085', linewidth=1.2)
             ax2 = ax.twinx()
-            ax2.plot(df['date'], df['pb'], label='PB',
-                     color='#D35400', linewidth=1.2, linestyle='--')
-            ax.set_ylabel('PE', color='#16A085')
-            ax2.set_ylabel('PB', color='#D35400')
-            ax.set_title('PE / PB 估值时序')
+            ax2.plot(df['date'], df['pb'], label='PB', color='#D35400', linewidth=1.2, linestyle='--')
+            ax.set_ylabel('PE', fontfamily="WenQuanYi Micro Hei", color='#16A085')
+            ax2.set_ylabel('PB', fontfamily="WenQuanYi Micro Hei", color='#D35400')
+            ax.set_title('PE / PB 估值时序', fontfamily="WenQuanYi Micro Hei")
             lines1, labels1 = ax.get_legend_handles_labels()
             lines2, labels2 = ax2.get_legend_handles_labels()
-            ax.legend(lines1 + lines2, labels1 + labels2, loc='upper left')
+            ax.legend(lines1 + lines2, labels1 + labels2, loc='upper left', prop={"family": "WenQuanYi Micro Hei"})
             ax.grid(True, alpha=0.3)
             st.pyplot(fig)
-            st.caption('解读：比亚迪估值波动区间极大，高PE/PB区间对应市场情绪过热，可作为辅助减仓参考。')
+            st.caption('解读：高PE/PB对应市场情绪过热，可作为减仓辅助判断')
 
+        # Tab4 情感图
         with tab4:
             fig, ax = plt.subplots(figsize=(11, 4), constrained_layout=True)
-            ax.plot(df['date'], df['sentiment'], color='#2980B9',
-                    linewidth=0.8, alpha=0.5, label='日度情感')
+            ax.plot(df['date'], df['sentiment'], color='#2980B9', linewidth=0.8, alpha=0.5, label='日情感')
             roll = df['sentiment'].rolling(20).mean()
-            ax.plot(df['date'], roll, color='#C0392B',
-                    linewidth=1.8, label='20日均值')
-            ax.axhline(0.55, color='green', linestyle='--', alpha=0.6,
-                       label='开仓阈值 0.55')
+            ax.plot(df['date'], roll, color='#C0392B', linewidth=1.8, label='20日均值')
+            ax.axhline(0.55, color='green', linestyle='--', alpha=0.6, label='开仓阈值 0.55')
             ax.axhline(0.5, color='gray', linestyle=':', alpha=0.5, label='中性 0.5')
-            ax.fill_between(df['date'], 0.5, df['sentiment'],
-                            where=df['sentiment'] >= 0.5,
-                            color='#27AE60', alpha=0.12)
-            ax.fill_between(df['date'], 0.5, df['sentiment'],
-                            where=df['sentiment'] < 0.5,
-                            color='#2E86C1', alpha=0.12)
+            ax.fill_between(df['date'], 0.5, df['sentiment'], where=df['sentiment'] >= 0.5, color='#27AE60', alpha=0.12)
+            ax.fill_between(df['date'], 0.5, df['sentiment'], where=df['sentiment'] < 0.5, color='#2E86C1', alpha=0.12)
             ax.set_ylim(0, 1)
-            ax.set_ylabel('情感分 [0, 1]')
-            ax.set_title('财经新闻情感指数（SnowNLP）')
-            ax.legend(loc='upper left', fontsize=8, ncol=4)
+            ax.set_ylabel('情感分 [0, 1]', fontfamily="WenQuanYi Micro Hei")
+            ax.set_title('财经新闻情感指数（SnowNLP）', fontfamily="WenQuanYi Micro Hei")
+            ax.legend(loc='upper left', prop={"family": "WenQuanYi Micro Hei"}, fontsize=8, ncol=4)
             ax.grid(True, alpha=0.3)
             st.pyplot(fig)
-            st.caption('解读：情感分持续高于0.55代表市场乐观，配合技术金叉执行开仓；长期低于0.5时，即便技术看多也保持观望。')
+            st.caption('解读：情感分持续高于0.55才配合技术信号开仓，悲观区间保持观望')
     else:
-        st.info('请先运行数据获取与回测脚本生成完整时序数据。')
+        st.info('请运行回测脚本生成完整时序数据')
 
 
 # ============================================================
-# 第 7 页：总结与展望（精简课程体会）
+# 第 7 页：总结与展望
 # ============================================================
 def page_summary():
     st.header('💡 总结与展望')
     st.markdown('---')
+    df, metrics = load_data()
 
     st.subheader('1. 策略效果总结')
-    df, metrics = load_data()
     if metrics is not None:
         try:
-            strat = metrics[metrics['分组'] == '全样本-策略'].iloc[0]
-            bench = metrics[metrics['分组'] == '全样本-基准'].iloc[0]
+            strat = metrics[metrics['分组'] == '全样本'].iloc[0]
+            bench = metrics[metrics['分组基准'] == '全样本'].iloc[0]
             st.success(
-                f'✅ **策略累计收益 {strat["累计收益"]}** vs '
-                f'基准 {bench["累计收益"]}；'
-                f'夏普 {strat["夏普比率"]}；最大回撤 {strat["最大回撤"]}。'
-                f'舆情过滤有效降低了假信号开仓次数，'
-                f'在样本外 2026 仍保持正收益，体现一定稳健性。'
+                f'✅ **策略累计收益 {strat["累计收益"]}** ，基准 {bench["累计收益"]}；'
+                f'夏普比率 {strat["夏普比率"]}，最大回撤 {strat["最大回撤"]}。'
+                f'舆情过滤减少假开仓，样本外2026年保持正向收益，具备稳健性。'
             )
-        except Exception:
-            st.success('✅ 策略在训练集与样本外均跑赢基准，舆情过滤有效。')
+        except:
+            st.success('训练集、样本外策略收益均优于买入持有基准')
     else:
-        st.success('✅ 策略在训练集与样本外均跑赢基准，舆情过滤有效。')
+        st.success('训练集、样本外策略收益均优于买入持有基准')
 
     st.subheader('2. 优点')
     pros = pd.DataFrame({
         '优点': [
             '多源数据融合',
-            '防未来函数',
-            '样本外验证',
-            '舆情过滤创新',
-            '工程闭环完整',
+            '规避未来函数',
+            '样本外检验',
+            '舆情创新过滤',
+            '完整工程链路',
         ],
         '说明': [
-            '行情 + 估值 + 舆情三类数据交叉验证',
-            'shift(1) 严格延后 1 日成交',
-            '2026 样本外独立测试，避免过拟合',
-            'SnowNLP 情感作为信号过滤器',
-            'data → backtest → dashboard → report',
+            '行情+估值+舆情三类数据交叉验证',
+            '信号延迟一日成交',
+            '2026独立数据检验过拟合',
+            '情感分作为开仓过滤条件',
+            '采集-清洗-回测-可视化完整闭环',
         ],
     })
-    st.dataframe(pros, hide_index=True, use_container_width=True)
+    st.dataframe(pros, hide_index=True, width="stretch")
 
     st.subheader('3. 缺点')
     cons = pd.DataFrame({
         '缺点': [
-            'SnowNLP 准确率有限',
-            '单标的样本少',
-            '未考虑滑点',
+            'SnowNLP财经识别弱',
+            '单标的覆盖面窄',
+            '未计入滑点损耗',
             '情感阈值固定',
-            '未做参数稳健性扫描',
+            '无参数遍历优化',
         ],
         '影响': [
-            '财经语境识别约 70%，复杂句易误判',
-            '结论难以推广到其他股票',
-            '实际交易成本可能更高',
-            '0.55 阈值未做最优化',
-            '可能存在过拟合风险',
+            '财经文本判断准确率仅70%',
+            '结论难以推广全行业',
+            '实盘成本高于回测',
+            '市场切换适应性差',
+            '存在局部过拟合风险',
         ],
     })
-    st.dataframe(cons, hide_index=True, use_container_width=True)
+    st.dataframe(cons, hide_index=True, width="stretch")
 
     st.subheader('4. 改进方向')
     improve_table = pd.DataFrame({
-        '方向': [
-            '换用 FinBERT',
-            '多标的验证',
-            '加入滑点模型',
-            '参数网格搜索',
-            '动态阈值',
+        '优化方向': [
+            '替换FinBERT专业情感模型',
+            '多行业标的批量回测',
+            '增加滑点成本建模',
+            '网格搜索最优参数',
+            '动态自适应情感阈值',
         ],
-        '预期收益': [
-            '情感准确率 70% → 85%+',
-            '提升信号质量',
-            '更稳健的结论',
-            'MDD 收窄 2-3%',
-            '适应市场风格切换',
-        ],
+        '预期提升': [
+            '情感识别至85%以上',
+            '结论具备普适性',
+            '回测更贴近实盘',
+            '最大回撤收窄2%-3%',
+            '适配牛熊风格切换',
     })
-    st.dataframe(improve_table, hide_index=True, use_container_width=True)
+    st.dataframe(improve_table, hide_index=True, width="stretch")
 
-    st.subheader('5. 课程体会')
+    st.subheader('5. 课程学习总结')
     st.info(
-        '📚 本项目串联课程全部知识点，完成从数据采集、清洗入库、量化回测到可视化面板的完整数据分析全流程实践。'
+        '📚 本项目完整覆盖课程全部实操知识点，完成从网络数据采集、清洗入库、多因子策略回测、交互式可视化汇报的全流程综合实践。'
     )
 
     st.markdown('---')
     st.markdown(
         '<div style="text-align:center; color:#7F8C8D; margin-top:2rem;">'
         '感谢评委老师聆听 · 欢迎提问<br>'
-        '王淑璐 · 赵梦婷 · 财经数据分析课程设计 · 2026 年 6 月'
+        '王淑璐 · 赵梦婷 · 财经数据分析 · 2026 年 6 月'
         '</div>',
         unsafe_allow_html=True,
     )
 
 
 # ============================================================
-# 路由（侧边无运行命令、翻页稳定）
+# 页面路由
 # ============================================================
 if 'current_page_idx' not in st.session_state:
     st.session_state.current_page_idx = 0
@@ -670,29 +638,22 @@ PAGE_FUNCS = {
     PAGES[5]: page_visualization,
     PAGES[6]: page_summary,
 }
-
 PAGE_FUNCS[page]()
 
-# 底部翻页
+# 底部翻页按钮
 st.markdown('---')
 cols = st.columns([1, 1, 1])
 idx = st.session_state.current_page_idx
-
 with cols[0]:
-    if idx > 0:
-        if st.button('⬅️ 上一页'):
-            st.session_state.current_page_idx -= 1
-            st.rerun()
-
+    if idx > 0 and st.button('⬅️ 上一页'):
+        st.session_state.current_page_idx -= 1
+        st.rerun()
 with cols[2]:
-    if idx < len(PAGES) - 1:
-        if st.button('下一页 ➡️'):
-            st.session_state.current_page_idx += 1
-            st.rerun()
-
+    if idx < len(PAGES)-1 and st.button('下一页 ➡️'):
+        st.session_state.current_page_idx += 1
+        st.rerun()
 with cols[1]:
     st.markdown(
-        f'<div style="text-align:center; color:#7F8C8D; padding-top:0.5rem;">'
-        f'第 {idx + 1} / {len(PAGES)} 页</div>',
-        unsafe_allow_html=True,
+        f'<div style="text-align:center; color:#7F8C8D; padding-top:0.5rem;">第 {idx+1} / {len(PAGES)} 页</div>',
+        unsafe_allow_html=True
     )
