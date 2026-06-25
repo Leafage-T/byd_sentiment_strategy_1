@@ -15,48 +15,49 @@ streamlit_report.py
 作者：王淑璐 · 赵梦婷    课程：财经数据分析
 ================================================================
 """
-
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import streamlit as st
 
+# matplotlib 中文字体配置
 import matplotlib
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 
-import requests
-import os
+# ----------------------- 字体配置（修复版） -----------------------
+# 优先使用系统已安装的字体（通过 packages.txt 已安装 fonts-wqy-zenhei）
+# 如果找不到，则回退到 DejaVu Sans（英文显示正常，中文会变方块）
 
-# 下载 Noto Sans SC 字体（如果本地没有）
-font_url = "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanssc/NotoSansSC-Regular.ttf"
-font_path = "NotoSansSC-Regular.ttf"
+# 方法1：直接指定系统字体路径（最可靠）
+FONT_PATHS = [
+    "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",      # WQY ZenHei
+    "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",    # WQY MicroHei
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",   # DejaVu 备用
+]
 
-if not os.path.exists(font_path):
-    response = requests.get(font_url)
-    with open(font_path, "wb") as f:
-        f.write(response.content)
+FONT_NAME = "DejaVu Sans"  # 默认备用
 
-# 添加字体到 matplotlib
-fm.fontManager.addfont(font_path)
-plt.rcParams["font.sans-serif"] = ["Noto Sans SC"]
-plt.rcParams["axes.unicode_minus"] = False
-
-# ----------------------- 字体全局统一缩小配置 -----------------------
-plt.rcParams['font.size'] = 10
-for fp in [
-    '/usr/share/fonts/truetype/chinese/NotoSansSC-Regular.ttf',
-    '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
-]:
+for fp in FONT_PATHS:
     if Path(fp).exists():
         try:
             fm.fontManager.addfont(fp)
-        except Exception:
-            pass
-plt.rcParams['font.sans-serif'] = ['Noto Sans SC', 'DejaVu Sans', 'SimHei']
-plt.rcParams['axes.unicode_minus'] = False
+            # 提取字体名称（ZenHei 或 MicroHei）
+            if "zenhei" in fp.lower():
+                FONT_NAME = "WenQuanYi Zen Hei"
+            elif "microhei" in fp.lower():
+                FONT_NAME = "WenQuanYi Micro Hei"
+            else:
+                FONT_NAME = "DejaVu Sans"
+            break
+        except Exception as e:
+            print(f"字体加载失败 {fp}: {e}")
+            continue
 
+# 设置 matplotlib 字体
+plt.rcParams["font.sans-serif"] = [FONT_NAME, "DejaVu Sans"]
+plt.rcParams["axes.unicode_minus"] = False
 # ----------------------- 路径 -----------------------
 HERE = Path(__file__).resolve().parent
 CSV_PATH = HERE / 'backtest_result.csv'
