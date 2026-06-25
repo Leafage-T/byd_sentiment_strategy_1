@@ -25,6 +25,23 @@ import matplotlib
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 
+import requests
+import os
+
+# 下载 Noto Sans SC 字体（如果本地没有）
+font_url = "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanssc/NotoSansSC-Regular.ttf"
+font_path = "NotoSansSC-Regular.ttf"
+
+if not os.path.exists(font_path):
+    response = requests.get(font_url)
+    with open(font_path, "wb") as f:
+        f.write(response.content)
+
+# 添加字体到 matplotlib
+fm.fontManager.addfont(font_path)
+plt.rcParams["font.sans-serif"] = ["Noto Sans SC"]
+plt.rcParams["axes.unicode_minus"] = False
+
 # ----------------------- 字体配置 -----------------------
 for fp in [
     "/usr/share/fonts/truetype/chinese/NotoSansSC-Regular.ttf",
