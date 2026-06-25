@@ -15,9 +15,8 @@ streamlit_report.py
 作者：王淑璐 · 赵梦婷    课程：财经数据分析
 ================================================================
 """
-# 【唯一有效全局字体配置，删除所有旧Noto/DejaVu加载代码】
+# 全局字体基础配置
 import matplotlib
-# 优先文泉驿微米黑，兜底正黑，云端apt自动安装
 matplotlib.rcParams['font.sans-serif'] = ["WenQuanYi Micro Hei", "WenQuanYi Zen Hei"]
 matplotlib.rcParams['axes.unicode_minus'] = False
 matplotlib.rcParams['font.size'] = 10
@@ -380,7 +379,7 @@ def page_strategy():
 
 
 # ============================================================
-# 第 5 页：回测结果（图表全部添加fontfamily修复中文）
+# 第 5 页：回测结果（全图表强制字体）
 # ============================================================
 def page_results():
     st.header('📈 回测结果')
@@ -392,7 +391,7 @@ def page_results():
     if metrics is not None:
         train = metrics[metrics['分组'].str.contains('训练集')].copy()
         sample = metrics[metrics['分组'].str.contains('样本外')].copy()
-        full = metrics[metrics['分组']].str.contains('全样本').copy()
+        full = metrics[metrics['分组'].str.contains('全样本')].copy()
 
         c1, c2 = st.columns(2)
         with c1:
@@ -409,14 +408,14 @@ def page_results():
     st.subheader('2. 策略净值 vs 基准净值')
     if df is not None and len(df) > 0:
         fig, ax = plt.subplots(figsize=(12, 5), constrained_layout=True)
+        fig.suptitle("策略净值 VS 基准净值", fontfamily="WenQuanYi Micro Hei", fontsize=16)
         ax.plot(df['date'], df['strategy_nav'], label='策略净值', color='#C0392B', linewidth=1.8)
         ax.plot(df['date'], df['benchmark_nav'], label='基准(买入持有)', color='#2E86C1', linewidth=1.5, linestyle='--')
         ax.axvline(pd.Timestamp('2026-01-01'), color='gray', linestyle=':', alpha=0.7, label='样本外起点')
 
-        # 全部文字强制指定中文字体
         ax.set_xlabel('日期', fontfamily="WenQuanYi Micro Hei")
         ax.set_ylabel('净值（归一化）', fontfamily="WenQuanYi Micro Hei")
-        ax.set_title('策略净值 vs 基准净值', fontfamily="WenQuanYi Micro Hei")
+        ax.set_title('净值走势对比', fontfamily="WenQuanYi Micro Hei")
         ax.legend(loc='upper left', prop={"family": "WenQuanYi Micro Hei"})
         ax.grid(True, alpha=0.3)
         st.pyplot(fig)
@@ -431,7 +430,7 @@ def page_results():
 
 
 # ============================================================
-# 第 6 页：可视化面板（全部图表字体指定）
+# 第 6 页：可视化面板（全部图表强制字体）
 # ============================================================
 def page_visualization():
     st.header('🎨 可视化面板演示')
@@ -447,9 +446,10 @@ def page_visualization():
         # Tab1 净值图
         with tab1:
             fig, ax = plt.subplots(figsize=(11, 4), constrained_layout=True)
+            fig.suptitle("策略净值 VS 基准净值", fontfamily="WenQuanYi Micro Hei", fontsize=15)
             ax.plot(df['date'], df['strategy_nav'], label='策略', color='#C0392B', linewidth=1.6)
             ax.plot(df['date'], df['benchmark_nav'], label='基准', color='#2E86C1', linewidth=1.4, linestyle='--')
-            ax.set_title('策略净值 vs 基准净值', fontfamily="WenQuanYi Micro Hei")
+            ax.set_title('净值走势', fontfamily="WenQuanYi Micro Hei")
             ax.legend(loc='upper left', prop={"family": "WenQuanYi Micro Hei"})
             ax.grid(True, alpha=0.3)
             st.pyplot(fig)
@@ -458,6 +458,7 @@ def page_visualization():
         # Tab2 多指标图
         with tab2:
             fig, axes = plt.subplots(3, 1, figsize=(11, 8), constrained_layout=True, sharex=True)
+            fig.suptitle("股价均线 / MACD / RSI 多指标走势", fontfamily="WenQuanYi Micro Hei", fontsize=15)
             # 均线子图
             axes[0].plot(df['date'], df['close'], label='收盘价', color='#2C3E50', linewidth=1)
             axes[0].plot(df['date'], df['ma5'], label='MA5', color='#E74C3C', linewidth=1)
@@ -483,19 +484,20 @@ def page_visualization():
             axes[2].set_xlabel('日期', fontfamily="WenQuanYi Micro Hei")
             axes[2].legend(loc='upper left', prop={"family": "WenQuanYi Micro Hei"}, fontsize=8)
             axes[2].grid(True, alpha=0.3)
-            axes[2].set_title('股价均线 / MACD / RSI 走势', fontfamily="WenQuanYi Micro Hei")
+            axes[2].set_title('RSI超买超卖区间', fontfamily="WenQuanYi Micro Hei")
             st.pyplot(fig)
             st.caption('解读：MA5金叉、MACD翻红、RSI未超买构成开仓信号；死叉/RSI>75平仓')
 
         # Tab3 估值图
         with tab3:
             fig, ax = plt.subplots(figsize=(11, 4), constrained_layout=True)
+            fig.suptitle("PE、PB估值时序变化", fontfamily="WenQuanYi Micro Hei", fontsize=15)
             ax.plot(df['date'], df['pe'], label='PE(TTM)', color='#16A085', linewidth=1.2)
             ax2 = ax.twinx()
             ax2.plot(df['date'], df['pb'], label='PB', color='#D35400', linewidth=1.2, linestyle='--')
             ax.set_ylabel('PE', fontfamily="WenQuanYi Micro Hei", color='#16A085')
             ax2.set_ylabel('PB', fontfamily="WenQuanYi Micro Hei", color='#D35400')
-            ax.set_title('PE / PB 估值时序', fontfamily="WenQuanYi Micro Hei")
+            ax.set_title('估值走势', fontfamily="WenQuanYi Micro Hei")
             lines1, labels1 = ax.get_legend_handles_labels()
             lines2, labels2 = ax2.get_legend_handles_labels()
             ax.legend(lines1 + lines2, labels1 + labels2, loc='upper left', prop={"family": "WenQuanYi Micro Hei"})
@@ -506,6 +508,7 @@ def page_visualization():
         # Tab4 情感图
         with tab4:
             fig, ax = plt.subplots(figsize=(11, 4), constrained_layout=True)
+            fig.suptitle("财经新闻情感指数走势", fontfamily="WenQuanYi Micro Hei", fontsize=15)
             ax.plot(df['date'], df['sentiment'], color='#2980B9', linewidth=0.8, alpha=0.5, label='日情感')
             roll = df['sentiment'].rolling(20).mean()
             ax.plot(df['date'], roll, color='#C0392B', linewidth=1.8, label='20日均值')
@@ -515,7 +518,7 @@ def page_visualization():
             ax.fill_between(df['date'], 0.5, df['sentiment'], where=df['sentiment'] < 0.5, color='#2E86C1', alpha=0.12)
             ax.set_ylim(0, 1)
             ax.set_ylabel('情感分 [0, 1]', fontfamily="WenQuanYi Micro Hei")
-            ax.set_title('财经新闻情感指数（SnowNLP）', fontfamily="WenQuanYi Micro Hei")
+            ax.set_title('舆情情感时序', fontfamily="WenQuanYi Micro Hei")
             ax.legend(loc='upper left', prop={"family": "WenQuanYi Micro Hei"}, fontsize=8, ncol=4)
             ax.grid(True, alpha=0.3)
             st.pyplot(fig)
